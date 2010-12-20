@@ -1,0 +1,1 @@
+This Java library contains a convenient class to extend your own test classes that need to mock external (e.g. HTTP) resources.
