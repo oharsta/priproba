@@ -19,17 +19,16 @@ import org.springframework.core.io.ClassPathResource;
  */
 public class MockHttpServerTest extends AbstractMockHttpServerTest {
 
-	/**
-	 * Test the MockHttpServer.
-	 */
-	@Test
-	public void testMockHappyFlow() throws Exception {
-		ClassPathResource responseResource = new ClassPathResource("test.json");
-		super.setResponseResource(responseResource);
-		InputStream is = new URL("http://localhost:8088/testUrl").openStream();
-		Assert.assertEquals(
-				IOUtils.toString(responseResource.getInputStream()),
-				IOUtils.toString(is));
-	}
+  /**
+   * Test the MockHttpServer.
+   */
+  @Test
+  public void testMockHappyFlow() throws Exception {
+    ClassPathResource responseResource = new ClassPathResource("test.json");
+    super.setResponseResource(responseResource);
+    InputStream is = new URL("http://localhost:8088/testUrl").openStream();
+    Assert.assertEquals(IOUtils.toString(responseResource.getInputStream()),
+        IOUtils.toString(is));
+  }
 
 }

@@ -37,7 +37,7 @@ public abstract class AbstractMockHttpServerTest {
    * Set the expected response on the Handler
    * 
    * @param responseResource
-   *          the resource of the file containing the xml response
+   *          the resource of the file containing the xml/json/whatever response
    */
   protected void setResponseResource(Resource responseResource) {
     server.setResponseResource(responseResource);

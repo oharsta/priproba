@@ -3,118 +3,116 @@
  */
 package com.zilverline;
 
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.io.IOUtils;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.bio.SocketConnector;
-import org.mortbay.jetty.handler.AbstractHandler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.bio.SocketConnector;
 import org.springframework.core.io.Resource;
 
 /**
  * Very simple {@link Server} to mock http traffic
  * 
  */
-public class MockHttpServer extends AbstractHandler {
+public class MockHttpServer {
 
-	/*
-	 * The Jetty Server responsible for opening the Socket
-	 */
-	private Server server;
+  /*
+   * The Jetty Server responsible for listening to requests
+   */
+  private Server server;
 
-	/*
-	 * The resource of the (XML, JSON etc) file that should be returned. It is
-	 * accessible through the server instance and must be accessible from the
-	 * classpath
-	 */
-	private Resource responseResource;
+  private MockHandler handler;
 
-	/**
-	 * Construct MockHtppServer
-	 * 
-	 * @param port
-	 *            the port for starting up the HTTP server
-	 */
-	public MockHttpServer(int port) {
-		super();
-		initServer(port);
+  /**
+   * Construct MockHtppServer
+   * 
+   * @param port
+   *          the port for starting up the HTTP server
+   */
+  public MockHttpServer(int port) {
+    super();
+    initServer(port);
 
-	}
+  }
 
-	/*
-	 * Initialize the server
-	 */
-	private void initServer(int port) {
-		this.server = new Server();
-		SocketConnector connector = new SocketConnector();
-		connector.setPort(port);
-		this.server.addConnector(connector);
-		this.server.addHandler(this);
-	}
+  /*
+   * Initialize the server
+   */
+  private void initServer(int port) {
+    this.server = new Server();
+    SocketConnector connector = new SocketConnector();
+    connector.setPort(port);
+    this.server.addConnector(connector);
+    this.handler = new MockHandler();
+    this.server.setHandler(handler);
+  }
 
-	@Override
-	public void handle(String target, HttpServletRequest request,
-			HttpServletResponse response, int dispatch) throws IOException,
-			ServletException {
-		invariant();
-		ServletOutputStream outputStream = response.getOutputStream();
-		IOUtils.copy(responseResource.getInputStream(), outputStream);
-		outputStream.flush();
+  /**
+   * Start the server in a non-blocking mode. The separate thread will be killed
+   * when the test class finishes
+   */
+  public void startServer() {
+    doStartServer(true);
+  }
 
-	}
+  /**
+   * Start the server in a non-blocking mode. The separate thread will be killed
+   * when the test class finishes
+   * 
+   * @param async
+   *          if {@literal true} it will start with a short delay
+   */
+  private void doStartServer(boolean async) {
+    Thread thread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          server.start();
+          // just wait until the server gets killed
+          System.in.read();
+        } catch (Exception e) {
+          stopServer();
+          throw new RuntimeException(e);
+        }
+      }
+    });
+    if (async) {
+      thread.start();
+      // give the server some time to start
+      sleep(150);
+    } else {
+      thread.run();
+    }
+  }
 
-	/**
-	 * Start the server in a non-blocking mode. The separate thread will be
-	 * killed when the test class finishes
-	 */
-	public void startServer() {
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					server.start();
-					// just wait until the server gets killed
-					System.in.read();
-				} catch (Exception e) {
-					stopServer();
-					throw new RuntimeException(e);
-				}
-			}
-		}).start();
-	}
+  /*
+   * Sleep for some time
+   */
+  private void sleep(int millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      stopServer();
+      throw new RuntimeException(e);
+    }
+  }
 
-	/**
-	 * Stop the server
-	 */
-	public void stopServer() {
-		try {
-			this.server.stop();
-			this.server.join();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+  /**
+   * Stop the server
+   */
+  public void stopServer() {
+    try {
+      this.server.stop();
+      this.server.join();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
-	}
+  }
 
-	/*
-	 * Check the response to render back
-	 */
-	private void invariant() {
-		if (this.responseResource == null) {
-			throw new RuntimeException("No responseResource set");
-		}
-	}
+  /**
+   * @param responseResource
+   *          the responseResource to set
+   */
+  public void setResponseResource(Resource responseResource) {
+    this.handler.setResponseResource(responseResource);
+  }
 
-	/**
-	 * @param responseResource
-	 *            the responseResource to set
-	 */
-	public void setResponseResource(Resource responseResource) {
-		this.responseResource = responseResource;
-	}
 }
